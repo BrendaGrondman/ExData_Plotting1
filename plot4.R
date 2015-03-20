@@ -1,30 +1,23 @@
-#Download file from website, unzip and save it. 
-download.file("https://archive.ics.uci.edu/ml/machine-learning-databases/00235/household_power_consumption.zip",destfile="data.zip")
-unzip("data.zip", "household_power_consumption.txt")
-dd <- read.table("household_power_consumption.txt", sep=";",header=T)
-subset1 <- dd[dd$Date=="1/2/2007",]
-subset2 <- dd[dd$Date=="2/2/2007",]
-subset<- rbind(subset1, subset2)
+#Load required libraries and data
+library(ggplot2)
+library(plyr)
+setwd("C:/Users/Brenda/Documents/Coursera/ProjectDataExploration")
+NEI <- readRDS("summarySCC_PM25.rds") 
+SCC <- readRDS("Source_Classification_Code.rds")
 
-date<-as.Date(subset[,1], "%d/%m/%Y")
-time<-subset[,2]
-datetime<-paste(date,time)
-time<-strptime(datetime, "%Y-%m-%d %H:%M:%S")
-
-Global_active_power_vect <- as.numeric(as.vector(subset[,3]))
-Sub_metering_1 <- as.numeric(as.vector(subset[,7]))
-Sub_metering_2 <- as.numeric(as.vector(subset[,8]))
-Sub_metering_3 <- as.numeric(as.vector(subset[,9]))
-Voltage <- as.numeric(as.vector(subset[,5]))
-Global_reactive_power <- as.numeric(as.vector(subset[,4]))
-datetime<-time
-png(filename = "plot4.png", width = 480, height = 480)
-par(mfrow = c(2,2))
-plot(time, Global_active_power_vect, type="l", ylab="Global Active Power", xlab="")
-plot(time, Voltage, type="l", ylab="Voltage", xlab="datetime")
-plot(time, Sub_metering_1, type="l", ylab="Energy sub metering", xlab="")
-lines(time, Sub_metering_2, col="red")
-lines(time, Sub_metering_3, col="blue")
-legend("topright", lty=c(1,1), col=c("black", "red", "blue"), legend = c("Sub_metering_1", "Sub_metering_2", "Sub_metering_3") , bty = "n")
-plot(time, Global_reactive_power, type="l", ylab="Global_reactive_power", xlab="datetime")
-dev.off()
+#I chose to look for every possible item that chould have coal in it, 
+#and the code below does that.
+#Then I select those records from SCc and NEI
+Rows_Coal<-grep("[cC][oO][aA][lL ]",(SCC$Short.Name));
+SCCfinal<- SCC[Rows_Coal,]
+NEI_Subset<-merge(NEI,SCCfinal);
+#The total emission for USA is calculated
+total_emissions <- ddply(NEI_Subset, .(year), summarise, sum(Emissions))
+#Data preparation for graph is done:
+colnames(total_emissions) <- c("Year", "Emission")
+Year <- as.character(total_emissions[,1])
+Emission <- as.numeric(total_emissions[,2])
+total<-data.frame(Year, Emission)
+ggplot(data=total, aes(x=Year, y=Emission)) + geom_bar(stat="identity")+ggtitle("Total emissions from coal combustion-related sources in USA")
+dev.copy(png, file = "plot4.png")
+dev.off()  

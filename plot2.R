@@ -1,18 +1,14 @@
-#Download file from website, unzip and save it. 
-download.file("https://archive.ics.uci.edu/ml/machine-learning-databases/00235/household_power_consumption.zip",destfile="data.zip")
-unzip("data.zip", "household_power_consumption.txt")
-dd <- read.table("household_power_consumption.txt", sep=";",header=T)
-subset1 <- dd[dd$Date=="1/2/2007",]
-subset2 <- dd[dd$Date=="2/2/2007",]
-subset<- rbind(subset1, subset2)
+#load required package and data 
+library(plyr)
+setwd("C:/Users/Brenda/Documents/Coursera/ProjectDataExploration")
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("Source_Classification_Code.rds")
 
-date<-as.Date(subset[,1], "%d/%m/%Y")
-time<-subset[,2]
-datetime<-paste(date,time)
-time<-strptime(datetime, "%Y-%m-%d %H:%M:%S")
-
-Global_active_power_vect <- as.numeric(as.vector(subset[,3]))
-
-png(filename = "plot2.png", width = 480, height = 480)
-plot(time, Global_active_power_vect, type="l", ylab="Global Active Power (kilowatts)", xlab="")
+#Select Baltimore and calculate total emission in Baltimore, and add colnames
+NEI_Baltimore <- NEI[NEI[,1]=="24510",]
+total_emission_Baltimore <- ddply(NEI_Baltimore, .(year), summarise, sum(Emissions))
+colnames(total_emission_Baltimore) <- c("year", "TotalPM")
+#Make and save graph
+barplot(total_emission_Baltimore$TotalPM, names =total_emission_Baltimore$year, ylab= "Total PM2.5 emissions Baltimore City, Maryland", pch = 19, xlab = "Year", main = "Total PM2.5 Emission per year, Baltimore City")
+dev.copy(png, file = "plot2.png")
 dev.off()
